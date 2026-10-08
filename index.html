@@ -1,0 +1,418 @@
+<html style="margin:0;padding:0;">
+<title>交互式学习：Agent 的工作原理</title>
+<div id="root" style="width:100%;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#faf9f5;color:#1f2937;line-height:1.7;">
+
+<!-- ============ HERO ============ -->
+<div style="max-width:960px;margin:0 auto;padding:36px 20px 16px;">
+  <div style="display:inline-block;background:#0d7377;color:#fff;font-size:12px;padding:4px 12px;border-radius:20px;letter-spacing:1px;">交互式学习 · 原文《简单讲讲 Agent 的工作原理》</div>
+  <h1 style="font-size:30px;margin:14px 0 8px;line-height:1.3;">Agent 的工作原理<br><span style="color:#0d7377;">= Harness 对「上下文」的自动化编排</span></h1>
+  <p style="color:#555;font-size:15px;max-width:720px;margin:0;">不管产品主打 Coding、办公还是陪伴，底层都一样：模型每做一次判断前，系统（Harness）都在后台精心组装它能看到的材料。下面 6 个模块带你逐层拆开看。</p>
+</div>
+
+<!-- ============ NAV ============ -->
+<div style="max-width:960px;margin:0 auto;padding:8px 20px;">
+  <div id="nav" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+</div>
+
+<!-- ============ CH1: 模型这一刻知道什么 ============ -->
+<section class="ch" data-ch="1" style="max-width:960px;margin:18px auto;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h2 style="margin:0 0 4px;font-size:22px;">① 模型这一刻「知道」什么？</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 18px;">模型本身没有记忆，它每次都是「睁开眼看到什么就判断什么」。下面三个圈层，点击切换视角：</p>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;">
+      <div style="flex:1;min-width:280px;">
+        <svg viewBox="0 0 320 320" style="width:100%;max-width:340px;display:block;margin:0 auto;">
+          <circle cx="160" cy="160" r="150" fill="#e8f0ef" stroke="#0d7377" stroke-width="2" opacity="0.5"/>
+          <circle cx="160" cy="160" r="100" fill="#cfe3e1" stroke="#0d7377" stroke-width="2"/>
+          <circle cx="160" cy="160" r="55"  fill="#0d7377"/>
+          <text x="160" y="165" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">模型此刻</text>
+          <text x="160" y="40" text-anchor="middle" fill="#0d7377" font-size="12">电脑里存了什么</text>
+          <text x="160" y="100" text-anchor="middle" fill="#0a5c5f" font-size="12">会话里发生过什么</text>
+          <text x="160" y="285" text-anchor="middle" fill="#888" font-size="11">← 越往里 = 模型本次真正看得到的 →</text>
+        </svg>
+      </div>
+      <div style="flex:1;min-width:260px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="ring-btn" data-ring="disk" style="text-align:left;padding:12px 14px;border:2px solid #ddd;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;min-height:44px;">💾 电脑里保存了什么</button>
+          <button class="ring-btn" data-ring="session" style="text-align:left;padding:12px 14px;border:2px solid #ddd;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;min-height:44px;">💬 会话里发生过什么</button>
+          <button class="ring-btn" data-ring="context" style="text-align:left;padding:12px 14px;border:2px solid #ddd;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;min-height:44px;">👁 模型此刻收到什么</button>
+        </div>
+        <div id="ring-detail" style="margin-top:14px;padding:14px;background:#f4f1ea;border-radius:10px;font-size:14px;min-height:90px;">
+          点击左侧任一圈层，看它到底装了什么。
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:12px 14px;background:#fff8e6;border-left:4px solid #e8a33d;border-radius:6px;font-size:14px;">
+      <b>关键区别：</b>你给 AI 一份新文件 ≠ 把知识训练进模型。它只是把材料「临时放进」了本次请求里。
+    </div>
+  </div>
+</section>
+
+<!-- ============ CH2: 循环 ============ -->
+<section class="ch" data-ch="2" style="max-width:960px;margin:18px auto;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h2 style="margin:0 0 4px;font-size:22px;">② 一句回答，怎么变成连续行动？</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 16px;">点「播放」看 Agent 如何进入 <b>思考 → 行动 → 反馈 → 再思考</b> 的循环。</p>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button id="loop-play" style="min-height:44px;padding:0 20px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">▶ 播放循环</button>
+      <button id="loop-reset" style="min-height:44px;padding:0 20px;background:#eee;color:#333;border:none;border-radius:8px;font-size:14px;cursor:pointer;">↺ 重置</button>
+    </div>
+    <svg viewBox="0 0 600 240" style="width:100%;max-width:640px;display:block;margin:0 auto;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#999"/>
+        </marker>
+      </defs>
+      <g id="node-think">
+        <circle cx="120" cy="80" r="46" fill="#e8f0ef" stroke="#0d7377" stroke-width="2"/>
+        <text x="120" y="76" text-anchor="middle" font-size="13" font-weight="600" fill="#0d7377">🧠 模型</text>
+        <text x="120" y="94" text-anchor="middle" font-size="11" fill="#555">判断下一步</text>
+      </g>
+      <g id="node-act">
+        <circle cx="480" cy="80" r="46" fill="#fdf3e0" stroke="#e8a33d" stroke-width="2"/>
+        <text x="480" y="76" text-anchor="middle" font-size="13" font-weight="600" fill="#b07d28">🛠 工具</text>
+        <text x="480" y="94" text-anchor="middle" font-size="11" fill="#555">执行动作</text>
+      </g>
+      <g id="node-observe">
+        <circle cx="300" cy="190" r="46" fill="#f0e8f0" stroke="#8b5a8b" stroke-width="2"/>
+        <text x="300" y="186" text-anchor="middle" font-size="13" font-weight="600" fill="#6b446b">📥 反馈</text>
+        <text x="300" y="204" text-anchor="middle" font-size="11" fill="#555">结果进上下文</text>
+      </g>
+      <path d="M160,60 Q300,20 440,60" fill="none" stroke="#bbb" stroke-width="2" marker-end="url(#arr)"/>
+      <path d="M450,115 Q400,170 350,175" fill="none" stroke="#bbb" stroke-width="2" marker-end="url(#arr)"/>
+      <path d="M250,175 Q180,160 140,120" fill="none" stroke="#bbb" stroke-width="2" marker-end="url(#arr)"/>
+    </svg>
+    <div id="loop-log" style="margin-top:14px;padding:14px;background:#1f2937;color:#d1fae5;border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:13px;min-height:80px;line-height:1.6;">
+      准备就绪。点击「播放循环」开始。
+    </div>
+    <div style="margin-top:12px;font-size:13px;color:#666;">💡 表面上是 Agent 在连续干几小时，Harness 内部其实是几十上百次这样的小循环。</div>
+  </div>
+</section>
+
+<!-- ============ CH3: 能力进入上下文 ============ -->
+<section class="ch" data-ch="3" style="max-width:960px;margin:18px auto;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h2 style="margin:0 0 4px;font-size:22px;">③ 能力怎样进入上下文？</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 16px;">工具越多，说明越长。任务通常只用其中一小部分——所以 Harness 用「渐进加载」。切换看看：</p>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="load-btn" data-mode="naive" style="min-height:44px;padding:0 18px;border:2px solid #0d7377;background:#0d7377;color:#fff;border-radius:8px;font-size:14px;cursor:pointer;">全量加载</button>
+      <button class="load-btn" data-mode="progressive" style="min-height:44px;padding:0 18px;border:2px solid #ddd;background:#fff;color:#333;border-radius:8px;font-size:14px;cursor:pointer;">渐进加载（真实做法）</button>
+    </div>
+    <div style="font-size:13px;color:#666;margin-bottom:6px;">上下文占用（示意，越高越挤）：</div>
+    <div style="background:#eee;border-radius:8px;overflow:hidden;height:26px;margin-bottom:14px;position:relative;">
+      <div id="ctx-bar" style="height:100%;width:30%;background:linear-gradient(90deg,#0d7377,#5fb3b5);transition:width .5s;"></div>
+      <span id="ctx-pct" style="position:absolute;right:8px;top:4px;font-size:12px;color:#333;font-weight:600;">30%</span>
+    </div>
+    <div id="skill-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;">
+      <div style="flex:1;min-width:180px;padding:12px;background:#f4f1ea;border-radius:8px;font-size:13px;"><b>Skill</b> = 怎么做（方法步骤）</div>
+      <div style="flex:1;min-width:180px;padding:12px;background:#f4f1ea;border-radius:8px;font-size:13px;"><b>工具</b> = 能做什么（具体操作）</div>
+      <div style="flex:1;min-width:180px;padding:12px;background:#f4f1ea;border-radius:8px;font-size:13px;"><b>MCP</b> = 怎样接入外部服务</div>
+      <div style="flex:1;min-width:180px;padding:12px;background:#f4f1ea;border-radius:8px;font-size:13px;"><b>插件</b> = 如何打包分发</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CH4: 记忆延续 ============ -->
+<section class="ch" data-ch="4" style="max-width:960px;margin:18px auto;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h2 style="margin:0 0 4px;font-size:22px;">④ 任务变长，记忆怎样延续？</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 16px;">上下文有容量上限。点「执行一步」看上下文被工具返回结果撑满，再点「压缩历史」：</p>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button id="mem-step" style="min-height:44px;padding:0 18px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">＋ 执行一步</button>
+      <button id="mem-compress" style="min-height:44px;padding:0 18px;background:#e8a33d;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🗜 压缩历史</button>
+      <button id="mem-reset" style="min-height:44px;padding:0 18px;background:#eee;color:#333;border:none;border-radius:8px;font-size:14px;cursor:pointer;">↺ 重置</button>
+    </div>
+    <div style="font-size:13px;color:#666;margin-bottom:6px;">当前上下文窗口：</div>
+    <div id="mem-window" style="background:#f8f7f2;border:2px dashed #ccc;border-radius:10px;padding:10px;min-height:120px;font-family:ui-monospace,Menlo,monospace;font-size:12px;display:flex;flex-direction:column;gap:6px;">
+      <div style="color:#888;">（空）</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:150px;padding:10px;background:#e8f0ef;border-radius:8px;font-size:13px;"><b>① 当前上下文</b><br>本次请求带着，最直接</div>
+      <div style="flex:1;min-width:150px;padding:10px;background:#fdf3e0;border-radius:8px;font-size:13px;"><b>② 会话记录</b><br>界面能翻到，但未必在请求里</div>
+      <div style="flex:1;min-width:150px;padding:10px;background:#f0e8f0;border-radius:8px;font-size:13px;"><b>③ 项目文件</b><br>原始日志存这，需要再读</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CH5: 多 Agent ============ -->
+<section class="ch" data-ch="5" style="max-width:960px;margin:18px auto;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h2 style="margin:0 0 4px;font-size:22px;">⑤ 多个 Agent 怎样交换信息？</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 16px;">主 Agent 把任务拆开，子 Agent 在<b>各自独立的上下文</b>里干活。点下面三个子 Agent，看它们交回了什么：</p>
+    <svg viewBox="0 0 600 220" style="width:100%;max-width:640px;display:block;margin:0 auto;">
+      <rect x="230" y="10" width="140" height="50" rx="10" fill="#0d7377"/>
+      <text x="300" y="40" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">主 Agent</text>
+      <line x1="260" y1="60" x2="110" y2="120" stroke="#bbb" stroke-width="2"/>
+      <line x1="300" y1="60" x2="300" y2="120" stroke="#bbb" stroke-width="2"/>
+      <line x1="340" y1="60" x2="490" y2="120" stroke="#bbb" stroke-width="2"/>
+      <g class="sub-agent" data-sub="research" style="cursor:pointer;">
+        <rect x="40" y="120" width="140" height="60" rx="10" fill="#e8f0ef" stroke="#0d7377" stroke-width="2"/>
+        <text x="110" y="145" text-anchor="middle" font-size="13" font-weight="600" fill="#0d7377">🔍 查资料</text>
+        <text x="110" y="165" text-anchor="middle" font-size="11" fill="#666">点击看它交回啥</text>
+      </g>
+      <g class="sub-agent" data-sub="verify" style="cursor:pointer;">
+        <rect x="230" y="120" width="140" height="60" rx="10" fill="#fdf3e0" stroke="#e8a33d" stroke-width="2"/>
+        <text x="300" y="145" text-anchor="middle" font-size="13" font-weight="600" fill="#b07d28">📊 核数据</text>
+        <text x="300" y="165" text-anchor="middle" font-size="11" fill="#666">点击看它交回啥</text>
+      </g>
+      <g class="sub-agent" data-sub="check" style="cursor:pointer;">
+        <rect x="460" y="120" width="140" height="60" rx="10" fill="#f0e8f0" stroke="#8b5a8b" stroke-width="2"/>
+        <text x="530" y="145" text-anchor="middle" font-size="13" font-weight="600" fill="#6b446b">✅ 查结论</text>
+        <text x="530" y="165" text-anchor="middle" font-size="11" fill="#666">点击看它交回啥</text>
+      </g>
+    </svg>
+    <div id="sub-detail" style="margin-top:14px;padding:14px;background:#f4f1ea;border-radius:10px;font-size:14px;min-height:80px;">
+      点上面任意一个子 Agent。注意：主 Agent 读过的东西，子 Agent <b>不会自动同步</b>。
+    </div>
+    <div style="margin-top:12px;padding:12px;background:#fff8e6;border-left:4px solid #e8a33d;border-radius:6px;font-size:14px;">
+      <b>交接的关键：</b>不仅要规定「谁做哪部分」，还要规定「做完交回什么」。只说"数据没问题"和说"核对了哪些、依据啥、还有啥疑问"，价值天差地别。
+    </div>
+  </div>
+</section>
+
+<!-- ============ CH6: 跟上变化 ============ -->
+<section class="ch" data-ch="6" style="max-width:960px;margin:18px auto;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h2 style="margin:0 0 4px;font-size:22px;">⑥ 上下文还要跟上任务变化</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 16px;">Agent 改代码改到一半，你突然插话"先别改，告诉我原因"。Harness 用<b>消息队列</b>接住，并保证工具调用与结果配对不乱：</p>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button id="q-step" style="min-height:44px;padding:0 18px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">推进下一步 →</button>
+      <button id="q-reset" style="min-height:44px;padding:0 18px;background:#eee;color:#333;border:none;border-radius:8px;font-size:14px;cursor:pointer;">↺ 重置</button>
+    </div>
+    <div style="font-size:13px;color:#666;margin-bottom:6px;">事件队列（按到达顺序）：</div>
+    <div id="queue-box" style="background:#f8f7f2;border:2px solid #ddd;border-radius:10px;padding:12px;min-height:100px;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+    </div>
+    <div id="q-note" style="margin-top:12px;padding:12px;background:#e8f0ef;border-radius:8px;font-size:14px;min-height:48px;">点「推进下一步」看事件如何进入上下文。</div>
+  </div>
+</section>
+
+<!-- ============ SUMMARY ============ -->
+<section style="max-width:960px;margin:18px auto 40px;padding:0 20px;box-sizing:border-box;">
+  <div style="background:#1f2937;color:#f0f4f4;border-radius:14px;padding:26px;">
+    <h2 style="margin:0 0 14px;font-size:20px;color:#5fb3b5;">🎯 一句话总结</h2>
+    <ol style="margin:0;padding-left:20px;font-size:15px;line-height:2;">
+      <li>把相关材料<b>读进来</b>（组装上下文）</li>
+      <li>让工具结果参与<b>下一轮判断</b>（循环）</li>
+      <li>任务变长时<b>整理/压缩历史</b>（记忆）</li>
+      <li>按分工把信息<b>交给不同 Agent</b>（协作）</li>
+      <li>模型决定下一步，系统持续组织它判断所依据的信息——如此循环往复</li>
+    </ol>
+    <p style="margin:16px 0 0;font-size:13px;color:#999;">你用起来的那种"连贯感"，就是这些环节共同作用的结果。</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function(){
+  try {
+    /* ===== Chapter nav ===== */
+    var nav = document.getElementById('nav');
+    if (!nav) return;
+    var titles = {
+      '1':'① 模型知道什么','2':'② 连续行动循环','3':'③ 能力加载',
+      '4':'④ 记忆延续','5':'⑤ 多 Agent','6':'⑥ 跟上变化'
+    };
+    Object.keys(titles).forEach(function(k){
+      var b = document.createElement('button');
+      b.textContent = titles[k];
+      b.style.cssText = 'min-height:44px;padding:0 14px;border:2px solid #ddd;background:#fff;border-radius:20px;font-size:13px;cursor:pointer;';
+      b.onclick = function(){
+        var el = document.querySelector('section.ch[data-ch="'+k+'"]');
+        if (el) el.scrollIntoView({behavior:'smooth',block:'start'});
+      };
+      nav.appendChild(b);
+    });
+
+    /* ===== Ch1: ring detail ===== */
+    var ringData = {
+      disk:   '💾 <b>电脑里保存了什么</b><br>仓库里的文件、代码、日志、数据库。它们一直躺在磁盘上，但<b>不会自动跑进模型脑子</b>。要被工具读出来、选中相关片段，才会进入下一层。',
+      session:'💬 <b>会话里发生过什么</b><br>你和 Agent 来回聊过的每句话、之前工具返回的结果。它们记录在界面上，可以翻回去看——但历史太长时，<b>未必完整出现在下次请求里</b>。',
+      context:'👁 <b>模型此刻收到什么</b><br>这才是真正决定这次判断的东西：系统从上面两层里挑出来、组织成一份"提示词"，发给模型。模型能依据什么，<b>完全取决于这里面装了什么</b>。'
+    };
+    var ringDetail = document.getElementById('ring-detail');
+    document.querySelectorAll('.ring-btn').forEach(function(btn){
+      btn.onclick = function(){
+        document.querySelectorAll('.ring-btn').forEach(function(b){ b.style.borderColor='#ddd'; b.style.background='#fff'; });
+        btn.style.borderColor='#0d7377'; btn.style.background='#e8f0ef';
+        if (ringDetail) ringDetail.innerHTML = ringData[btn.dataset.ring];
+      };
+    });
+
+    /* ===== Ch2: loop animation ===== */
+    var loopPlay = document.getElementById('loop-play');
+    var loopReset = document.getElementById('loop-reset');
+    var loopLog = document.getElementById('loop-log');
+    var steps = [
+      {node:'node-think',  text:'第1轮 · 模型：「我需要先找到报名相关的文件」→ 发起工具调用 search_files("报名")'},
+      {node:'node-act',    text:'第1轮 · 工具：搜索完成，返回 3 个候选文件路径'},
+      {node:'node-observe',text:'第1轮 · 反馈：文件路径进入上下文。模型读到提交逻辑……'},
+      {node:'node-think',  text:'第2轮 · 模型：「提交字段和服务端对不上，改一下 user_form.ts」→ edit_file()'},
+      {node:'node-act',    text:'第2轮 · 工具：修改完成，返回 diff'},
+      {node:'node-observe',text:'第2轮 · 反馈：修改结果进上下文。模型：「跑一下检查验证」→ run_check()'},
+      {node:'node-think',  text:'第3轮 · 模型：「检查通过，没有新错误了」→ 输出最终结论 ✅'}
+    ];
+    var stepIdx = 0, timer = null;
+    function highlight(node){
+      ['node-think','node-act','node-observe'].forEach(function(n){
+        var el = document.getElementById(n);
+        if (el) el.style.opacity = (n===node)?'1':'0.35';
+      });
+    }
+    function resetLoop(){
+      stepIdx = 0;
+      if (timer){ clearInterval(timer); timer=null; }
+      highlight(null);
+      if (loopLog) loopLog.textContent = '准备就绪。点击「播放循环」开始。';
+    }
+    if (loopPlay) loopPlay.onclick = function(){
+      if (timer){ clearInterval(timer); timer=null; loopPlay.textContent='▶ 继续'; return; }
+      loopPlay.textContent='⏸ 暂停';
+      timer = setInterval(function(){
+        if (stepIdx >= steps.length){ clearInterval(timer); timer=null; loopPlay.textContent='▶ 播放循环'; highlight(null); return; }
+        var s = steps[stepIdx];
+        highlight(s.node);
+        if (loopLog) loopLog.textContent = s.text;
+        stepIdx++;
+      }, 1400);
+    };
+    if (loopReset) loopReset.onclick = resetLoop;
+
+    /* ===== Ch3: load mode ===== */
+    var skills = [
+      {name:'做PPT的Skill', desc:'先定结构→生成页面→检查版面', detail:'约 800 字步骤说明'},
+      {name:'Excel 处理工具', desc:'读表/公式/导出', detail:'约 300 字 API 说明'},
+      {name:'视频剪辑 Skill', desc:'裁剪/字幕/转场', detail:'约 600 字步骤说明'},
+      {name:'网页设计工具', desc:'HTML/CSS 渲染', detail:'约 400 字 API 说明'},
+      {name:'手机模拟器', desc:'App 自动化', detail:'约 500 字 API 说明'},
+      {name:'MCP 外部数据库', desc:'连接约定+schema', detail:'约 900 字'}
+    ];
+    var ctxBar = document.getElementById('ctx-bar');
+    var ctxPct = document.getElementById('ctx-pct');
+    var skillList = document.getElementById('skill-list');
+    function renderSkills(mode){
+      if (!skillList) return;
+      skillList.innerHTML = '';
+      skills.forEach(function(s, i){
+        var full = (mode==='naive');
+        var div = document.createElement('div');
+        div.style.cssText = 'padding:10px 12px;border-radius:8px;font-size:13px;border:1px solid #ddd;background:#fff;';
+        div.innerHTML = '<b>'+s.name+'</b>　'+(full ? s.detail : '<span style="color:#888;">仅名称+简述 → "'+s.desc+'"</span>')+(full?'':' <span style="color:#0d7377;cursor:pointer;margin-left:8px;">[需要时再读详细]</span>');
+        skillList.appendChild(div);
+      });
+      if (ctxBar) ctxBar.style.width = (mode==='naive' ? '92%' : '28%');
+      if (ctxPct) ctxPct.textContent = (mode==='naive'?'92%':'28%');
+    }
+    renderSkills('naive');
+    document.querySelectorAll('.load-btn').forEach(function(btn){
+      btn.onclick = function(){
+        document.querySelectorAll('.load-btn').forEach(function(b){
+          b.style.background='#fff'; b.style.color='#333'; b.style.borderColor='#ddd';
+        });
+        btn.style.background='#0d7377'; btn.style.color='#fff'; btn.style.borderColor='#0d7377';
+        renderSkills(btn.dataset.mode);
+      };
+    });
+
+    /* ===== Ch4: memory ===== */
+    var memWindow = document.getElementById('mem-window');
+    var memStep = document.getElementById('mem-step');
+    var memCompress = document.getElementById('mem-compress');
+    var memReset = document.getElementById('mem-reset');
+    var toolOutputs = [
+      '🔍 search("登录失败") → 命中 23 处（长日志，共 4820 字）',
+      '📖 read(auth.py:1-200) → 完整文件内容（3200 字）',
+      '🐛 run(test_login) → 报错：字段 email 类型不匹配',
+      '✏️ edit(auth.py:L45) → diff: email: str → EmailSchema',
+      '🐛 run(test_login) → 仍失败，password 字段缺失',
+      '✏️ edit(auth.py:L51) → diff: 补 password 校验',
+      '🐛 run(test_login) → ✅ 全部通过'
+    ];
+    var memIdx = 0;
+    function paintMem(){
+      if (!memWindow) return;
+      memWindow.innerHTML = '';
+      for (var i=0;i<memIdx;i++){
+        var d = document.createElement('div');
+        d.style.cssText='padding:6px 8px;background:#fff;border-left:3px solid #0d7377;border-radius:4px;';
+        d.textContent = toolOutputs[i];
+        memWindow.appendChild(d);
+      }
+      if (memIdx===0) memWindow.innerHTML='<div style="color:#888;">（空）</div>';
+    }
+    if (memStep) memStep.onclick = function(){
+      if (memIdx >= toolOutputs.length){ if(memWindow) memWindow.innerHTML+='<div style="color:#e8a33d;">任务已完成</div>'; return; }
+      memIdx++;
+      paintMem();
+    };
+    if (memCompress) memCompress.onclick = function(){
+      if (!memWindow || memIdx===0) return;
+      var summary = document.createElement('div');
+      summary.style.cssText='padding:8px;background:#fff8e6;border-left:3px solid #e8a33d;border-radius:4px;';
+      summary.textContent = '🗜 [历史摘要] 已定位登录失败=字段类型不匹配，已修 auth.py 两处，测试通过。原始日志已存入文件，需要时再读。';
+      memWindow.innerHTML='';
+      memWindow.appendChild(summary);
+      memIdx = 3; // 压缩后只保留最近关键步骤的指针
+    };
+    if (memReset) memReset.onclick = function(){ memIdx=0; paintMem(); };
+
+    /* ===== Ch5: sub agent ===== */
+    var subData = {
+      research: '🔍 <b>查资料 Agent 交回：</b>"找到了 3 篇相关文档，其中 A 提到字段校验在 L45，B 不相关。已附链接。" —— 有依据、有出处，主 Agent 能接着用。',
+      verify:   '📊 <b>核数据 Agent 交回：</b>只说一句"数据没问题"。 —— 看起来完成了，实际上主 Agent <b>无法判断它核了什么、可不可信</b>。这就是"压得太短"的坑。',
+      check:    '✅ <b>查结论 Agent 交回：</b>"核对了 5 条结论，3 条有来源支持；第 4 条'+'「响应时间<200ms」'+'只有一次测量，存疑；第 5 条无来源。" —— 结构化、可核对。'
+    };
+    var subDetail = document.getElementById('sub-detail');
+    document.querySelectorAll('.sub-agent').forEach(function(g){
+      g.style.cursor='pointer';
+      var rect = g.querySelector('rect');
+      g.addEventListener('click', function(){
+        document.querySelectorAll('.sub-agent rect').forEach(function(r){ r.setAttribute('stroke-width','2'); });
+        if (rect) rect.setAttribute('stroke-width','4');
+        if (subDetail) subDetail.innerHTML = subData[g.dataset.sub];
+      });
+    });
+
+    /* ===== Ch6: queue ===== */
+    var qEvents = [
+      {text:'🧠 模型发起工具调用 run(test_login)', kind:'call'},
+      {text:'⏳ 工具开始执行（等待结果）', kind:'wait'},
+      {text:'👤 用户插话："先别改，告诉我原因！"', kind:'user'},
+      {text:'📥 工具结果返回：报错 email 类型不匹配（配对到第1次调用）', kind:'result'},
+      {text:'🧠 Harness 把用户插话和工具结果一起交给模型，模型决定：先解释原因，再继续改', kind:'decide'}
+    ];
+    var qBox = document.getElementById('queue-box');
+    var qNote = document.getElementById('q-note');
+    var qIdx = 0;
+    function paintQ(){
+      if (!qBox) return;
+      qBox.innerHTML='';
+      for (var i=0;i<qIdx;i++){
+        var d = document.createElement('div');
+        var bg = qEvents[i].kind==='user' ? '#fff8e6' : (qEvents[i].kind==='result' ? '#e8f0ef' : '#f4f4f4');
+        d.style.cssText='padding:8px 10px;background:'+bg+';border-radius:6px;';
+        d.textContent = qEvents[i].text;
+        qBox.appendChild(d);
+      }
+      if (qIdx===0) qBox.innerHTML='<div style="color:#888;">（队列为空）</div>';
+      if (qNote){
+        if (qIdx>=4) qNote.innerHTML='💡 关键：工具结果必须配对到它属于的那次调用；用户插话不能插队破坏这种配对，而是按规则进入上下文。';
+        else if (qIdx>=2) qNote.innerHTML='⏳ 工具还在跑，用户消息先进队列等待——不会打断正在进行的调用配对。';
+        else qNote.textContent='点「推进下一步」看事件如何进入上下文。';
+      }
+    }
+    if (document.getElementById('q-step')) document.getElementById('q-step').onclick = function(){
+      if (qIdx < qEvents.length){ qIdx++; paintQ(); }
+    };
+    if (document.getElementById('q-reset')) document.getElementById('q-reset').onclick = function(){ qIdx=0; paintQ(); };
+    paintQ();
+
+  } catch(e){
+    console.error(e);
+    var r = document.getElementById('root');
+    if (r) r.insertAdjacentHTML('beforeend','<p style="padding:20px;color:#c00;">交互脚本加载失败，正文结构仍可见。</p>');
+  }
+})();
+</script>
+</html>
