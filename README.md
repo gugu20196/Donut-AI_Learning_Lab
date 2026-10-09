@@ -16,11 +16,27 @@
 
 ---
 
+## 📓 学习笔记
+
+从课程知识库整理出来的学习笔记，按目录结构归档：
+
+- [📓 全部笔记索引](./notes/README.md)
+  - 《学科信息学基础与应用》课程简介
+  - 课堂思考与疑问汇总
+  - AI 可视化学习资源合集（LLM Visualization / Transformer Explainer / CNN Explainer 等）
+
+---
+
 ## 🗂 仓库结构
 
 ```
 Donut-AI_Learning_Lab/
 ├── index.html          # 第一个交互式实验：Agent 工作原理拆解
+├── notes/              # 学习笔记（从飞书知识库导出）
+│   ├── 学科信息学基础与应用简介.md
+│   └── 个人拓展学习/
+│       ├── 课堂思考和疑问汇总.md
+│       └── AI相关可视化网站资料.md
 └── README.md
 ```
 
